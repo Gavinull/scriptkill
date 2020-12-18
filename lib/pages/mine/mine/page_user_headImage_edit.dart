@@ -1,0 +1,179 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:scriptkill/base/app_color.dart';
+import 'package:scriptkill/base/app_layout.dart';
+import 'package:scriptkill/widgets/app_full_screen_wrapper.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+
+class MyHeadImageEdit extends StatefulWidget {
+  final String avatarUrl;
+
+  MyHeadImageEdit({@required this.avatarUrl}) : assert(avatarUrl != null);
+
+  @override
+  _MyHeadImageEditState createState() => _MyHeadImageEditState(avatarUrl);
+}
+
+class _MyHeadImageEditState extends State<MyHeadImageEdit> {
+  final String avatarUrl;
+  File imageFile;
+  final List<Map<String, dynamic>> _actionListData = [
+    {'title': '拍照', 'value': 'takePhoto'},
+    {'title': '相册', 'value': 'ablum'},
+    {'title': '保存图片', 'value': 'saveImage'},
+  ];
+  String _activeKey;
+  _MyHeadImageEditState(this.avatarUrl);
+
+  // 选择图片
+  Future<Null> _pickImage() async {
+    imageFile = await ImagePicker.pickImage(source: ImageSource.gallery);
+    if (imageFile != null) {}
+  }
+
+  Future<Null> _takePhoto() async {
+    imageFile = await ImagePicker.pickImage(source: ImageSource.camera);
+    if (imageFile != null) {}
+  }
+
+  Future<Null> _cropImage() async {
+    File croppedFile = await ImageCropper.cropImage(
+      sourcePath: imageFile.path,
+//      toolbarTitle: 'Cropper',
+//      toolbarColor: Colors.blue,
+//      toolbarWidgetColor: Colors.white,
+    );
+    if (croppedFile != null) {
+      imageFile = croppedFile;
+    }
+  }
+
+  // 弹窗选项点击事件
+  void _handleClick(String key) {
+    print(key);
+    switch (key) {
+      case 'takePhoto':
+        _takePhoto().then((_) {
+          _cropImage();
+        });
+        break;
+      case 'ablum':
+        _pickImage().then((_) {
+          _cropImage();
+        });
+        break;
+      case 'saveImage':
+        break;
+      default:
+    }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("头像"),
+        centerTitle: true,
+        elevation: 0,
+        actions: <Widget>[
+          IconButton(
+            color: Colors.black,
+            alignment: Alignment.centerLeft,
+            onPressed: () {
+              showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  builder: (BuildContext context) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                        ),
+                        child: StatefulBuilder(
+                          builder:
+                              (BuildContext context, StateSetter setState) =>
+                                  Column(
+                            mainAxisSize: MainAxisSize.min, // 设置最小的弹出
+                            children: <Widget>[
+                              Column(
+                                  children: _actionListData
+                                      .map((Map<String, dynamic> data) =>
+                                          GestureDetector(
+                                            onTapUp: (TapUpDetails details) {
+                                              setState(() {
+                                                _activeKey = null;
+                                              });
+                                            },
+                                            onTap: () =>
+                                                _handleClick(data['value']),
+                                            onTapDown: (TapDownDetails detail) {
+                                              setState(() {
+                                                _activeKey = data['value'];
+                                              });
+                                            },
+                                            onTapCancel: () {
+                                              setState(() {
+                                                _activeKey = null;
+                                              });
+                                            },
+                                            child: Container(
+                                                width: double.infinity,
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical:
+                                                        AppLayout.height(16.0)),
+                                                child: Text(
+                                                  data['title'],
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          AppLayout.px(16)),
+                                                ),
+                                                color:
+                                                    _activeKey == data['value']
+                                                        ? Color(0xfffafafa)
+                                                        : Colors.white),
+                                          ))
+                                      .toList()),
+                              ListTile(
+                                title: Text(
+                                  '取消',
+                                  textAlign: TextAlign.center,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              SizedBox(
+                                height: AppLayout.height(20.0),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  });
+            },
+            icon: SvgPicture.asset(
+              'assets/icon/icon_setting.svg',
+              color: Colors.black,
+              width: AppLayout.width(AppLayout.appBarIconSize + 4.0),
+              height: AppLayout.height(AppLayout.appBarIconSize + 4.0),
+            ),
+          ),
+        ],
+      ),
+      body: AppFullScreenWrapper(
+        backgroundDecoration: BoxDecoration(color: AppColor.themeColor),
+        imageProvider: NetworkImage(avatarUrl),
+      ),
+    );
+  }
+}
